@@ -1,0 +1,439 @@
+<?php
+session_start();
+
+// Inicializar el estado de módulos en la sesión
+if (!isset($_SESSION['completed_modules'])) {$_SESSION['completed_modules'] = [];
+}
+
+// Procesar el envío de formulario para marcar módulos como completados
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) &&$_POST['action'] === 'complete_module') {
+    $modId =$_POST['module_id'] ?? '';
+    if ($modId && !in_array($modId,$_SESSION['completed_modules'])) {
+        $_SESSION['completed_modules'][] =$modId;
+    }
+    header("Location: index.php?view=" . urlencode($modId));
+    exit;
+}
+
+$currentView = $_GET['view'] ?? 'dashboard';$completedModules = $_SESSION['completed_modules'];$totalModules = 7;
+$progressPercentage = round((count($completedModules) /$totalModules) * 100);
+
+// Configuración de los elementos de navegación
+$navItems = [
+    'dashboard' => ['icon' => 'fa-border-all text-brand-400', 'label' => 'Panel Principal'],
+    'm1' => ['icon' => 'fa-desktop text-sky-400', 'label' => '1. Partes de la PC'],
+    'm2' => ['icon' => 'fa-microchip text-emerald-400', 'label' => '2. Hardware vs Software'],
+    'm3' => ['icon' => 'fa-keyboard text-purple-400', 'label' => '3. Teclado y Mouse'],
+    'm4' => ['icon' => 'fa-folder-tree text-amber-400', 'label' => '4. Carpetas y Archivos'],
+    'm5' => ['icon' => 'fa-file-lines text-rose-400', 'label' => '5. Procesador de Texto'],
+    'm6' => ['icon' => 'fa-globe text-indigo-400', 'label' => '6. Navegación y Correo'],
+    'm7' => ['icon' => 'fa-check-double text-teal-400', 'label' => '7. Quiz y Evaluación'],
+];
+?>
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal de Alfabetización Digital - Curso Completo Interactivo</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .light .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(156, 163, 175, 0.4); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(156, 163, 175, 0.6); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col transition-colors duration-300 light:bg-slate-50 light:text-slate-800">
+
+    <!-- TOP NAVBAR -->
+    <header class="sticky top-0 z-50 glass border-b border-slate-800/80 light:border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="?view=dashboard" class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20 font-black text-xl">
+                    <i class="fa-solid fa-laptop-code"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-none bg-gradient-to-r from-brand-400 to-cyan-400 bg-clip-text text-transparent">DigiAprende</h1>
+                    <span class="text-[10px] text-slate-400 font-medium tracking-wider uppercase">Portal de Alfabetización Digital</span>
+                </div>
+            </a>
+
+            <!-- Global Progress Bar & Theme Toggle -->
+            <div class="flex items-center gap-4 sm:gap-6">
+                <div class="hidden sm:flex items-center gap-3 bg-slate-900/60 light:bg-slate-100 p-2 px-4 rounded-full border border-slate-800 light:border-slate-200">
+                    <i class="fa-solid fa-trophy text-amber-400 text-sm"></i>
+                    <div class="w-28 bg-slate-700 light:bg-slate-300 h-2 rounded-full overflow-hidden">
+                        <div class="bg-gradient-to-r from-brand-500 to-cyan-400 h-full transition-all duration-500" style="width: <?= $progressPercentage ?>%;"></div>
+                    </div>
+                    <span class="text-xs font-bold text-slate-300 light:text-slate-700"><?= $progressPercentage ?>%</span>
+                </div>
+
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-xl bg-slate-800/80 light:bg-slate-200 flex items-center justify-center hover:bg-slate-700 light:hover:bg-slate-300 transition-colors text-amber-400 dark:text-cyan-400">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-1 flex max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 gap-6">
+
+        <!-- DESKTOP SIDEBAR NAVIGATION -->
+        <aside class="hidden md:block w-64 shrink-0">
+            <nav class="sticky top-22 space-y-1.5 p-3 rounded-2xl glass border border-slate-800/80 light:border-slate-200">
+                <div class="px-3 py-2 text-[11px] font-bold tracking-wider text-slate-400 uppercase">Módulos de Estudio</div>
+                
+                <?php foreach ($navItems as $key =>$item): 
+                    $isActive = ($currentView === $key);$isCompleted = in_array($key,$completedModules);
+                ?>
+                    <a href="?view=<?= $key ?>" class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all <?= $isActive ? 'bg-slate-800 text-white' : 'text-slate-300 hover:bg-slate-800/60 light:text-slate-700' ?>">
+                        <span class="flex items-center gap-3">
+                            <i class="fa-solid <?= $item['icon'] ?> text-base"></i> <?= $item['label'] ?>
+                        </span>
+                        <?php if ($isCompleted): ?>
+                            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+                        <?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
+            </nav>
+        </aside>
+
+        <!-- MAIN VIEW CONTAINER -->
+        <main class="flex-1 min-w-0">
+            <?php if ($currentView === 'dashboard'): ?>
+                <!-- VIEW: DASHBOARD -->
+                <section class="space-y-6">
+                    <div class="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-brand-900/60 via-slate-900 to-indigo-950/60 border border-brand-500/20 shadow-xl relative overflow-hidden">
+                        <div class="relative z-10 space-y-3 max-w-2xl">
+                            <span class="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                                Aprende Tecnología Paso a Paso
+                            </span>
+                            <h2 class="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
+                                Bienvenido a tu Portal de Alfabetización Digital
+                            </h2>
+                            <p class="text-slate-300 text-sm leading-relaxed">
+                                Domina el uso de la computadora desde cero. Aprende conceptos teóricos fundamentales, practica en nuestros simuladores interactivos y valida tus aprendizajes.
+                            </p>
+                            <div class="pt-2 flex flex-wrap gap-3">
+                                <a href="?view=m1" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold text-xs transition-all shadow-lg shadow-brand-600/30">
+                                    Comenzar Módulo 1 <i class="fa-solid fa-arrow-right ml-1"></i>
+                                </a>
+                                <a href="?view=m5" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-all">
+                                    Ir a Procesador de Texto
+                                </a>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-laptop-code absolute -right-10 -bottom-10 text-[200px] text-white/5 pointer-events-none"></i>
+                    </div>
+
+                    <!-- Modules Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <a href="?view=m1" class="p-5 rounded-2xl glass hover:border-sky-500/50 cursor-pointer transition-all group border border-slate-800 light:border-slate-200 block">
+                            <div class="flex items-start justify-between">
+                                <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 text-xl group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-desktop"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-400">Mód. 1</span>
+                            </div>
+                            <h3 class="font-bold text-base mt-3 group-hover:text-sky-400 transition-colors">Partes de la Computadora</h3>
+                            <p class="text-xs text-slate-400 mt-1">Conoce el Monitor, Gabinete/CPU, Teclado, Mouse, Impresora y Parlantes con descripciones interactivas.</p>
+                        </a>
+
+                        <a href="?view=m2" class="p-5 rounded-2xl glass hover:border-emerald-500/50 cursor-pointer transition-all group border border-slate-800 light:border-slate-200 block">
+                            <div class="flex items-start justify-between">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-microchip"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-400">Mód. 2</span>
+                            </div>
+                            <h3 class="font-bold text-base mt-3 group-hover:text-emerald-400 transition-colors">Hardware vs. Software</h3>
+                            <p class="text-xs text-slate-400 mt-1">Aprende la diferencia entre lo tangible y lo digital con el juego interactivo de clasificación.</p>
+                        </a>
+
+                        <a href="?view=m3" class="p-5 rounded-2xl glass hover:border-purple-500/50 cursor-pointer transition-all group border border-slate-800 light:border-slate-200 block">
+                            <div class="flex items-start justify-between">
+                                <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 text-xl group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-keyboard"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-400">Mód. 3</span>
+                            </div>
+                            <h3 class="font-bold text-base mt-3 group-hover:text-purple-400 transition-colors">Teclado y Mouse</h3>
+                            <p class="text-xs text-slate-400 mt-1">Practica el clic, doble clic y arrastre con la diana interactiva y mide tu velocidad de mecanografía.</p>
+                        </a>
+
+                        <a href="?view=m4" class="p-5 rounded-2xl glass hover:border-amber-500/50 cursor-pointer transition-all group border border-slate-800 light:border-slate-200 block">
+                            <div class="flex items-start justify-between">
+                                <div class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 text-xl group-hover:scale-110 transition-transform">
+                                    <i class="fa-solid fa-folder-tree"></i>
+                                </div>
+                                <span class="text-[11px] font-bold text-slate-400">Mód. 4</span>
+                            </div>
+                            <h3 class="font-bold text-base mt-3 group-hover:text-amber-400 transition-colors">Carpetas y Archivos</h3>
+                            <p class="text-xs text-slate-400 mt-1">Simula la organización del sistema operativo creando, renombrando y eliminando archivos y carpetas.</p>
+                        </a>
+                    </div>
+                </section>
+
+            <?php elseif ($currentView === 'm1'): ?>
+                <!-- VIEW: MÓDULO 1 -->
+                <section class="space-y-6">
+                    <div class="p-6 rounded-2xl glass border border-slate-800 light:border-slate-200 space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg"><i class="fa-solid fa-desktop"></i></div>
+                            <div>
+                                <h2 class="text-xl font-bold">1. Partes de la Computadora</h2>
+                                <p class="text-xs text-slate-400">Explora la anatomía física de un equipo personal.</p>
+                            </div>
+                        </div>
+
+                        <p class="text-sm text-slate-300 leading-relaxed">
+                            Una computadora se compone de diversos periféricos y unidades de procesamiento. Haz clic en cualquiera de los componentes interactivos a continuación para conocer su función.
+                        </p>
+
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                            <button onclick="selectHardwareComponent('monitor')" class="p-4 rounded-xl bg-slate-900/60 light:bg-slate-100 hover:bg-sky-950/40 border border-slate-800 light:border-slate-300 text-center transition-all">
+                                <i class="fa-solid fa-tv text-2xl text-sky-400 mb-2"></i>
+                                <div class="text-xs font-bold">Monitor / Pantalla</div>
+                            </button>
+                            <button onclick="selectHardwareComponent('cpu')" class="p-4 rounded-xl bg-slate-900/60 light:bg-slate-100 hover:bg-sky-950/40 border border-slate-800 light:border-slate-300 text-center transition-all">
+                                <i class="fa-solid fa-server text-2xl text-emerald-400 mb-2"></i>
+                                <div class="text-xs font-bold">Gabinete / CPU</div>
+                            </button>
+                            <button onclick="selectHardwareComponent('keyboard')" class="p-4 rounded-xl bg-slate-900/60 light:bg-slate-100 hover:bg-sky-950/40 border border-slate-800 light:border-slate-300 text-center transition-all">
+                                <i class="fa-solid fa-keyboard text-2xl text-purple-400 mb-2"></i>
+                                <div class="text-xs font-bold">Teclado</div>
+                            </button>
+                        </div>
+
+                        <div id="hwDetailBox" class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 text-sm space-y-2">
+                            <h3 id="hwDetailTitle" class="font-bold text-sky-400 text-base">Selecciona un componente</h3>
+                            <p id="hwDetailDesc" class="text-slate-300">Haz clic en una de las tarjetas superiores para ver la información detallada.</p>
+                        </div>
+
+                        <form method="POST" action="index.php">
+                            <input type="hidden" name="action" value="complete_module">
+                            <input type="hidden" name="module_id" value="m1">
+                            <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white text-xs transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> Marcar Módulo 1 como Completado
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+            <?php elseif ($currentView === 'm2'): ?>
+                <!-- VIEW: MÓDULO 2 -->
+                <section class="space-y-6">
+                    <div class="p-6 rounded-2xl glass border border-slate-800 light:border-slate-200 space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg"><i class="fa-solid fa-microchip"></i></div>
+                            <div>
+                                <h2 class="text-xl font-bold">2. Hardware vs. Software</h2>
+                                <p class="text-xs text-slate-400">Diferencia entre la estructura física y los programas.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                            <div class="p-4 rounded-xl bg-slate-900/50 border border-emerald-500/30 space-y-2">
+                                <div class="font-bold text-emerald-400 text-sm flex items-center gap-2"><i class="fa-solid fa-hard-drive"></i> Hardware (Lo tangible)</div>
+                                <p class="text-slate-300">Son todos los componentes físicos, electrónicos y mecánicos que puedes tocar. Ejemplo: disco duro, memoria RAM, monitor y cables.</p>
+                            </div>
+                            <div class="p-4 rounded-xl bg-slate-900/50 border border-indigo-500/30 space-y-2">
+                                <div class="font-bold text-indigo-400 text-sm flex items-center gap-2"><i class="fa-solid fa-code"></i> Software (Lo intangible)</div>
+                                <p class="text-slate-300">Es el conjunto de programas, datos e instrucciones digitales que le dicen al hardware qué hacer. Ejemplo: Windows, Chrome, Word, juegos.</p>
+                            </div>
+                        </div>
+
+                        <form method="POST" action="index.php">
+                            <input type="hidden" name="action" value="complete_module">
+                            <input type="hidden" name="module_id" value="m2">
+                            <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white text-xs transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> Marcar Módulo 2 como Completado
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+            <?php elseif ($currentView === 'm3'): ?>
+                <!-- VIEW: MÓDULO 3 -->
+                <section class="space-y-6">
+                    <div class="p-6 rounded-2xl glass border border-slate-800 light:border-slate-200 space-y-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-lg">
+                                <i class="fa-solid fa-keyboard"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold">3. Práctica de Teclado y Mouse</h2>
+                                <p class="text-xs text-slate-400">Entrena tu coordinación motriz digital y velocidad.</p>
+                            </div>
+                        </div>
+
+                        <!-- Diana de Práctica de Clics -->
+                        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-bold text-sm text-purple-400"><i class="fa-solid fa-crosshairs mr-1"></i> Diana de Práctica de Clics</h3>
+                                <span id="mouseScore" class="text-xs bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full font-bold">Puntos: 0</span>
+                            </div>
+                            <p class="text-xs text-slate-400">Haz clic en el objetivo en movimiento.</p>
+
+                            <div id="mouseTargetArea" class="h-48 bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex items-center justify-center select-none">
+                                <div id="mouseTarget" onclick="handleTargetClick(false)" ondblclick="handleTargetClick(true)" class="absolute w-12 h-12 rounded-full bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center text-white cursor-pointer shadow-lg shadow-purple-500/30 transition-all duration-300 transform active:scale-95">
+                                    <i class="fa-solid fa-bullseye text-lg"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Prueba de Mecanografía -->
+                        <div class="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-3">
+                            <h3 class="font-bold text-sm text-purple-400"><i class="fa-solid fa-font mr-1"></i> Prueba de Mecanografía</h3>
+                            <p class="text-xs text-slate-400">Escribe exactamente la siguiente oración para evaluar tu velocidad de tecleo:</p>
+                            
+                            <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-cyan-400 select-none" id="typingPrompt">
+                                El conocimiento digital abre puertas hacia nuevas oportunidades.
+                            </div>
+
+                            <textarea 
+                                id="typingInput" 
+                                rows="2" 
+                                oninput="checkTypingSpeed()" 
+                                placeholder="Comienza a escribir la frase aquí..." 
+                                class="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-purple-500 resize-none">
+                            </textarea>
+
+                            <div class="flex items-center justify-between text-xs text-slate-400 pt-1">
+                                <span>Estado: <strong id="typingStatus" class="text-amber-400">En espera...</strong></span>
+                                <span>Precisión: <strong id="typingAccuracy" class="text-purple-400">0%</strong></span>
+                            </div>
+                        </div>
+
+                        <!-- Guardar Progreso -->
+                        <form method="POST" action="index.php">
+                            <input type="hidden" name="action" value="complete_module">
+                            <input type="hidden" name="module_id" value="m3">
+                            <button type="submit" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-white text-xs transition-all flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-circle-check"></i> Marcar Módulo 3 como Completado
+                            </button>
+                        </form>
+                    </div>
+                </section>
+            <?php else: ?>
+                <!-- Vista por defecto si la sección no existe -->
+                <div class="p-8 rounded-2xl glass border border-slate-800 text-center space-y-4">
+                    <h2 class="text-xl font-bold text-slate-300">Módulo en Desarrollo</h2>
+                    <p class="text-xs text-slate-400">Esta sección estará disponible próximamente.</p>
+                    <a href="?view=dashboard" class="inline-block px-4 py-2 bg-brand-600 text-white rounded-xl text-xs font-semibold">Volver al inicio</a>
+                </div>
+            <?php endif; ?>
+        </main>
+    </div>
+
+    <!-- SCRIPTS INTERACTIVOS DE JAVASCRIPT -->
+    <script>
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+            document.documentElement.classList.toggle('light');
+        }
+
+        // Módulo 1 - Selección de componentes
+        function selectHardwareComponent(type) {
+            const titleEl = document.getElementById('hwDetailTitle');
+            const descEl = document.getElementById('hwDetailDesc');
+            
+            const info = {
+                monitor: { title: 'Monitor / Pantalla', desc: 'Es el dispositivo de salida principal que muestra visualmente los datos de la interfaz de usuario.' },
+                cpu: { title: 'Gabinete / CPU', desc: 'Contiene los componentes clave como la placa base, procesador y memoria interna.' },
+                keyboard: { title: 'Teclado', desc: 'Periférico de entrada principal para introducir comandos de texto e instrucciones.' }
+            };
+
+            if(info[type]) {
+                titleEl.innerText = info[type].title;
+                descEl.innerText = info[type].desc;
+            }
+        }
+
+        // Módulo 3 - Diana de Clics
+        let mousePoints = 0;
+        function handleTargetClick(isDoubleClick) {
+            mousePoints += isDoubleClick ? 20 : 10;
+            document.getElementById('mouseScore').innerText = `Puntos: ${mousePoints}`;
+            
+            const container = document.getElementById('mouseTargetArea');
+            const target = document.getElementById('mouseTarget');
+            
+            const maxX = container.clientWidth - target.clientWidth;
+            const maxY = container.clientHeight - target.clientHeight;
+            
+            const randomX = Math.floor(Math.random() * maxX);
+            const randomY = Math.floor(Math.random() * maxY);
+            
+            target.style.left = `${randomX}px`;
+            target.style.top = `${randomY}px`;
+        }
+
+        // Módulo 3 - Mecanografía
+        function checkTypingSpeed() {
+            const targetText = document.getElementById('typingPrompt').innerText.trim();
+            const typedText = document.getElementById('typingInput').value;
+            const statusEl = document.getElementById('typingStatus');
+            const accuracyEl = document.getElementById('typingAccuracy');
+
+            let correctChars = 0;
+            for (let i = 0; i < typedText.length; i++) {
+                if (typedText[i] === targetText[i]) {
+                    correctChars++;
+                }
+            }
+
+            const accuracy = typedText.length > 0 ? Math.round((correctChars / typedText.length) * 100) : 0;
+            accuracyEl.innerText = `${accuracy}%`;
+
+            if (typedText === targetText) {
+                statusEl.innerText = '¡Completado con éxito!';
+                statusEl.className = 'text-emerald-400 font-bold';
+            } else if (typedText.length > 0) {
+                statusEl.innerText = 'Escribiendo...';
+                statusEl.className = 'text-sky-400';
+            } else {
+                statusEl.innerText = 'En espera...';
+                statusEl.className = 'text-amber-400';
+            }
+        }
+    </script>
+</body>
+</html>
